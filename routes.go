@@ -42,7 +42,7 @@ func tokenHandler(ctx dotweb.Context) error {
 		if access_token != "" {
 			// 如果数据库中已经存在了Token，就检查过期时间，如果过期了就去GetToken获取
 			curTime := time.Now().Unix()
-			if curTime >= expire_time+timeout {
+			if curTime >= expire_time+timeout-300 {
 				token := app.WxToken.Get(appid, secret)
 				// 没获得access_token就返回Failed消息
 				if token == "" {
