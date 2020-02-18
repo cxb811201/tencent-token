@@ -5,7 +5,7 @@ APP_HOME=`cd ${APP_HOME}; pwd`
 APP_LAUNCHER="$APP_HOME/wechat-token"
 APP_PID_FILE="$APP_HOME/app.pid"
 
-APP_DAEMON_OUT="$APP_LOG_DIR/app.out"
+APP_DAEMON_OUT="$APP_HOME/app.out"
 
 echo -e "wechat-token starting ... "
 
