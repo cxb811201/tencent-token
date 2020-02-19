@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/devfeel/dotweb"
+	"github.com/levigross/grequests"
 	"github.com/tidwall/buntdb"
 )
 
@@ -25,7 +26,7 @@ type Account struct {
 }
 
 func NewApp() *App {
-	var a = &App{}
+	a := &App{}
 	a.Accounts = make(map[string]string)
 	a.Web = dotweb.New()
 	a.WxToken = new(Token)
@@ -90,4 +91,32 @@ func (a *App) UpdateToken(appid string) {
 		tx.Set(appid+"_expires_in", strconv.Itoa(a.WxToken.Expire), nil)
 		return nil
 	})
+}
+
+// 启动AccessToken是否有效自动检测任务
+func (a *App) StartTokenCheckTask() {
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			for appid, secret := range a.Accounts {
+				token := app.Query(appid, "access_token")
+				if token != "" {
+					fmt.Printf("access_toke: %s\n", token)
+					ro := &grequests.RequestOptions{
+						Params: map[string]string{"access_token": token},
+					}
+
+					res, _ := grequests.Get("https://api.weixin.qq.com/cgi-bin/getcallbackip", ro)
+
+					var m map[string]interface{}
+					if err := json.Unmarshal(res.Bytes(), &m); err == nil {
+						if _, ok := m["errcode"]; ok {
+							_ = app.WxToken.Get(appid, secret)
+							app.UpdateToken(appid)
+						}
+					}
+				}
+			}
+		}
+	}()
 }

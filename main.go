@@ -35,6 +35,8 @@ func main() {
 	}
 	defer app.DB.Close()
 
+	app.StartTokenCheckTask()
+
 	InitRoute(app.Web.HttpServer)
 	log.Println("Start AccessToken Server on ", *port)
 	app.Web.StartServer(*port)
