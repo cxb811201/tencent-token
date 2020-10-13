@@ -28,7 +28,7 @@ func main() {
 	}
 
 	app.SetAccounts(config)
-	app.DB, err = buntdb.Open("wechat.db")
+	app.DB, err = buntdb.Open("tencent.db")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
