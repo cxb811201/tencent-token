@@ -1,10 +1,12 @@
 [
   {
-    "appid": "第一个微信公众号AppID",
-    "secret": "微信公众号AppSecret"
+    "type": "qq",
+    "appid": "第一个QQ小程序或小游戏AppID",
+    "secret": "QQ小程序或小游戏AppSecret"
   },
   {
-    "appid": "第二个微信公众号AppID",
+    "type": "wechat",
+    "appid": "第一个微信公众号AppID",
     "secret": "微信公众号AppSecret"
   }
 ]

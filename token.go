@@ -6,7 +6,10 @@ import (
 	"github.com/levigross/grequests"
 )
 
-const AccessTokenAPI = "https://api.weixin.qq.com/cgi-bin/token"
+const (
+	WeChatAccessTokenAPI = "https://api.weixin.qq.com/cgi-bin/token"
+	QQAccessTokenAPI = "https://api.q.qq.com/api/getToken"
+)
 
 type Token struct {
 	AccessToken string `json:"access_token"`
@@ -14,7 +17,7 @@ type Token struct {
 }
 
 // 获取AppID的access_token
-func (t *Token) Get(appid string, secret string) string {
+func GetToken(atype AccountType, appid string, secret string) *Token {
 	var params = map[string]string{
 		"appid":      appid,
 		"secret":     secret,
@@ -25,11 +28,17 @@ func (t *Token) Get(appid string, secret string) string {
 		Params: params,
 	}
 
-	res, _ := grequests.Get(AccessTokenAPI, ro)
-
-	if err := json.Unmarshal(res.Bytes(), t); err != nil {
-		return ""
+	var api = WeChatAccessTokenAPI
+	if atype == QQ {
+		api = QQAccessTokenAPI
 	}
 
-	return res.String()
+	res, _ := grequests.Get(api, ro)
+
+	var token *Token
+	if err := json.Unmarshal(res.Bytes(), &token); err != nil {
+		return nil
+	}
+
+	return token
 }

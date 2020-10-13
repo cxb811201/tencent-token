@@ -14,30 +14,33 @@ import (
 )
 
 type App struct {
-	Accounts map[string]string
+	Accounts []*Account
 	DB       *buntdb.DB
 	Web      *dotweb.DotWeb
-	WxToken  *Token
 }
 
+type AccountType string
+
+const (
+	QQ     AccountType = "qq"
+	WeChat AccountType = "wechat"
+)
+
 type Account struct {
-	AppID  string `json:"appid"`
-	Secret string `json:"secret"`
+	Type   AccountType `json:"type"`
+	AppID  string      `json:"appid"`
+	Secret string      `json:"secret"`
 }
 
 func NewApp() *App {
 	a := &App{}
-	a.Accounts = make(map[string]string)
 	a.Web = dotweb.New()
-	a.WxToken = new(Token)
 
 	return a
 }
 
 // 读取配置文件中的appid和secret值到一个map中
 func (a *App) SetAccounts(config *string) {
-	accounts := make([]Account, 1)
-
 	if _, err := os.Stat(*config); err != nil {
 		fmt.Println("配置文件无法打开！")
 		os.Exit(1)
@@ -49,21 +52,17 @@ func (a *App) SetAccounts(config *string) {
 		os.Exit(1)
 	}
 
-	if err := json.Unmarshal(raw, &accounts); err != nil {
+	if err := json.Unmarshal(raw, &a.Accounts); err != nil {
 		fmt.Println("配置文件内容错误！")
 		os.Exit(1)
 	}
-
-	for _, acc := range accounts {
-		a.Accounts[acc.AppID] = acc.Secret
-	}
 }
 
-func (a *App) Query(appid string, key string) string {
+func (a *App) Query(atype AccountType, appid string, key string) string {
 	var value string
 
 	err := a.DB.View(func(tx *buntdb.Tx) error {
-		v, err := tx.Get(appid + "_" + key)
+		v, err := tx.Get(fmt.Sprintf("%s_%s_%s", atype, appid, key))
 		if err != nil {
 			return err
 		}
@@ -78,17 +77,17 @@ func (a *App) Query(appid string, key string) string {
 }
 
 // 更新AppID上下文环境中的Access Token和到期时间
-func (a *App) UpdateToken(appid string) {
+func (a *App) UpdateToken(atype AccountType, appid string, token *Token) {
 	timestamp := time.Now().Unix()
 
 	a.DB.Update(func(tx *buntdb.Tx) error {
-		tx.Delete(appid + "_timestamp")
-		tx.Delete(appid + "_access_token")
-		tx.Delete(appid + "_expires_in")
+		tx.Delete(fmt.Sprintf("%s_%s_timestamp", atype, appid))
+		tx.Delete(fmt.Sprintf("%s_%s_access_token", atype, appid))
+		tx.Delete(fmt.Sprintf("%s_%s_expires_in", atype, appid))
 
-		tx.Set(appid+"_timestamp", strconv.FormatInt(timestamp, 10), nil)
-		tx.Set(appid+"_access_token", a.WxToken.AccessToken, nil)
-		tx.Set(appid+"_expires_in", strconv.Itoa(a.WxToken.Expire), nil)
+		tx.Set(fmt.Sprintf("%s_%s_timestamp", atype, appid), strconv.FormatInt(timestamp, 10), nil)
+		tx.Set(fmt.Sprintf("%s_%s_access_token", atype, appid), token.AccessToken, nil)
+		tx.Set(fmt.Sprintf("%s_%s_expires_in", atype, appid), strconv.Itoa(token.Expire), nil)
 		return nil
 	})
 }
@@ -98,8 +97,11 @@ func (a *App) StartTokenCheckTask() {
 	go func() {
 		for {
 			time.Sleep(5 * time.Second)
-			for appid, secret := range a.Accounts {
-				token := app.Query(appid, "access_token")
+			for _, account := range a.Accounts {
+				if account.Type != WeChat {
+					continue
+				}
+				token := app.Query(account.Type, account.AppID, "access_token")
 				if token != "" {
 					fmt.Printf("access_toke: %s\n", token)
 					ro := &grequests.RequestOptions{
@@ -111,8 +113,9 @@ func (a *App) StartTokenCheckTask() {
 					var m map[string]interface{}
 					if err := json.Unmarshal(res.Bytes(), &m); err == nil {
 						if _, ok := m["errcode"]; ok {
-							_ = app.WxToken.Get(appid, secret)
-							app.UpdateToken(appid)
+							if token := GetToken(account.Type, account.AppID, account.Secret); token != nil {
+								app.UpdateToken(account.Type, account.AppID, token)
+							}
 						}
 					}
 				}
