@@ -2,7 +2,7 @@
 
 APP_HOME=`dirname $0`
 APP_HOME=`cd ${APP_HOME}; pwd`
-APP_LAUNCHER="$APP_HOME/wechat-token"
+APP_LAUNCHER="$APP_HOME/tencent-token"
 APP_PID_FILE="$APP_HOME/app.pid"
 
 APP_DAEMON_OUT="$APP_HOME/app.out"
