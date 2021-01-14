@@ -1,4 +1,4 @@
-module github.com/cxb811201/wechat-token
+module github.com/cxb811201/tencent-token
 
 go 1.13
 
