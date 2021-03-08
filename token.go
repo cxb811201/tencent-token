@@ -8,7 +8,7 @@ import (
 
 const (
 	WeChatAccessTokenAPI = "https://api.weixin.qq.com/cgi-bin/token"
-	QQAccessTokenAPI = "https://api.q.qq.com/api/getToken"
+	QQAccessTokenAPI     = "https://api.q.qq.com/api/getToken"
 )
 
 type Token struct {
